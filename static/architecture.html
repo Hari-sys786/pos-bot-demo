@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #FFFFFF; display: flex; justify-content: center; padding: 40px 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+.diagram { width: 900px; }
+.title { text-align: center; margin-bottom: 8px; }
+.title h1 { font-size: 24px; color: #1A1A2E; font-weight: 700; }
+.title p { font-size: 13px; color: #888; margin-top: 4px; }
+.canvas { position: relative; width: 900px; height: 620px; }
+
+.box {
+  position: absolute; border-radius: 14px; padding: 16px 20px;
+  text-align: center; box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  border: 2px solid transparent;
+}
+.box .icon { font-size: 28px; margin-bottom: 6px; }
+.box h3 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.box p { font-size: 11px; line-height: 1.4; opacity: 0.8; }
+.box .tech { font-size: 10px; margin-top: 6px; padding: 3px 10px; border-radius: 10px; display: inline-block; font-weight: 600; }
+
+.user { left: 30px; top: 60px; width: 160px; background: #F0F7FF; border-color: #B3D4FF; color: #0050B3; }
+.user .tech { background: #D6E8FF; color: #0050B3; }
+
+.widget { left: 260px; top: 30px; width: 180px; background: #F6FFED; border-color: #B7EB8F; color: #237804; }
+.widget .tech { background: #D9F7BE; color: #237804; }
+
+.ws-label { position: absolute; left: 310px; top: 160px; font-size: 11px; color: #722ED1; font-weight: 700; background: #F9F0FF; padding: 4px 12px; border-radius: 8px; border: 1.5px solid #D3ADF7; }
+
+.server { left: 260px; top: 210px; width: 180px; background: #FFF7E6; border-color: #FFD591; color: #AD4E00; }
+.server .tech { background: #FFE7BA; color: #AD4E00; }
+
+.engine { left: 540px; top: 120px; width: 200px; background: #FFF0F6; border-color: #FFADD2; color: #9E1068; }
+.engine .tech { background: #FFD6E7; color: #9E1068; }
+
+.pattern { left: 540px; top: 300px; width: 200px; background: #F9F0FF; border-color: #D3ADF7; color: #531DAB; }
+.pattern .tech { background: #EFDBFF; color: #531DAB; }
+
+.data { left: 30px; top: 300px; width: 160px; background: #E6FFFB; border-color: #87E8DE; color: #006D75; }
+.data .tech { background: #B5F5EC; color: #006D75; }
+
+.responses { left: 30px; top: 470px; width: 160px; background: #FFFBE6; border-color: #FFE58F; color: #AD6800; }
+.responses .tech { background: #FFF1B8; color: #AD6800; }
+
+.features { left: 290px; top: 420px; width: 370px; background: #F5F5F5; border-color: #D9D9D9; color: #262626; border-radius: 14px; padding: 18px 24px; }
+.features h3 { text-align: left; font-size: 13px; margin-bottom: 10px; color: #262626; }
+.features .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; text-align: left; }
+.features .grid span { font-size: 11px; color: #595959; }
+
+/* Arrows using SVG */
+svg { position: absolute; top: 0; left: 0; width: 900px; height: 620px; pointer-events: none; }
+.arrow { stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+.arrow-blue { stroke: #4096FF; }
+.arrow-green { stroke: #52C41A; }
+.arrow-purple { stroke: #722ED1; }
+.arrow-orange { stroke: #FA8C16; }
+.arrow-pink { stroke: #EB2F96; }
+.arrow-teal { stroke: #13C2C2; }
+.arrow-dashed { stroke-dasharray: 6 4; }
+
+.flow-label {
+  position: absolute; font-size: 10px; font-weight: 700; padding: 2px 8px;
+  border-radius: 6px; white-space: nowrap;
+}
+.fl-1 { left: 200px; top: 75px; color: #4096FF; background: #E6F4FF; }
+.fl-2 { left: 445px; top: 165px; color: #EB2F96; background: #FFF0F6; }
+.fl-3 { left: 640px; top: 265px; color: #722ED1; background: #F9F0FF; }
+.fl-4 { left: 200px; top: 260px; color: #13C2C2; background: #E6FFFB; }
+.fl-5 { left: 445px; top: 375px; color: #FA8C16; background: #FFF7E6; }
+
+.num {
+  position: absolute; width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; color: white;
+}
+.n1 { left: 215px; top: 55px; background: #4096FF; }
+.n2 { left: 448px; top: 140px; background: #EB2F96; }
+.n3 { left: 648px; top: 242px; background: #722ED1; }
+.n4 { left: 210px; top: 238px; background: #13C2C2; }
+.n5 { left: 460px; top: 355px; background: #FA8C16; }
+
+.prod-note {
+  position: absolute; right: 20px; top: 30px; width: 140px;
+  background: #FFF1F0; border: 1.5px dashed #FFA39E; border-radius: 10px;
+  padding: 10px 12px; text-align: center;
+}
+.prod-note h4 { font-size: 11px; color: #CF1322; margin-bottom: 4px; }
+.prod-note p { font-size: 10px; color: #A8071A; line-height: 1.4; }
+</style>
+</head>
+<body>
+<div class="diagram">
+  <div class="title">
+    <h1>🏗️ POS Management Bot — Architecture (Demo)</h1>
+    <p>Pure Python Asyncio • WebSocket • Zero Dependencies • Pattern Matching Engine</p>
+  </div>
+  <div class="canvas">
+    <svg>
+      <defs>
+        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#666" />
+        </marker>
+      </defs>
+      <!-- 1: User → Widget -->
+      <path class="arrow arrow-blue" d="M 190,100 L 258,80" />
+      <!-- 2: Widget → Engine (via server) -->
+      <path class="arrow arrow-pink" d="M 440,80 L 540,160" />
+      <!-- 3: Engine → Pattern -->
+      <path class="arrow arrow-purple" d="M 640,260 L 640,298" />
+      <!-- 4: Server → Data -->
+      <path class="arrow arrow-teal" d="M 260,270 L 190,310" />
+      <!-- 5: Pattern → Features -->
+      <path class="arrow arrow-orange arrow-dashed" d="M 580,410 L 540,420" />
+      <!-- WS line -->
+      <path class="arrow arrow-purple" d="M 350,130 L 350,208" stroke-dasharray="6 4" />
+    </svg>
+
+    <div class="box user">
+      <div class="icon">👤</div>
+      <h3>Admin User</h3>
+      <p>Single role<br>Full access</p>
+      <span class="tech">Browser</span>
+    </div>
+
+    <div class="box widget">
+      <div class="icon">💬</div>
+      <h3>Chat Widget</h3>
+      <p>Floating icon, popup<br>Cards, buttons, forms</p>
+      <span class="tech">HTML/CSS/JS</span>
+    </div>
+
+    <div class="ws-label">⚡ WebSocket</div>
+
+    <div class="box server">
+      <div class="icon">⚙️</div>
+      <h3>Asyncio Server</h3>
+      <p>HTTP + WS handler<br>Static file serving</p>
+      <span class="tech">Python 3.7+</span>
+    </div>
+
+    <div class="box engine">
+      <div class="icon">🤖</div>
+      <h3>Bot Engine</h3>
+      <p>Session state machine<br>Context tracking<br>Form step management</p>
+      <span class="tech">BotEngine class</span>
+    </div>
+
+    <div class="box pattern">
+      <div class="icon">🔍</div>
+      <h3>Pattern Matching</h3>
+      <p>Regex + keyword routing<br>Button data dispatch<br>NL fallback (device ID)</p>
+      <span class="tech">Rule Engine</span>
+    </div>
+
+    <div class="box data">
+      <div class="icon">🗄️</div>
+      <h3>Dummy Data</h3>
+      <p>8 devices, 4 merchants<br>4 regions, 4 alerts<br>4 FAQ entries</p>
+      <span class="tech">In-Memory Dict</span>
+    </div>
+
+    <div class="box responses">
+      <div class="icon">📤</div>
+      <h3>Response Builder</h3>
+      <p>Cards, tables, forms<br>Button arrays<br>Confirmation flows</p>
+      <span class="tech">JSON Messages</span>
+    </div>
+
+    <div class="features">
+      <h3>📋 Bot Capabilities</h3>
+      <div class="grid">
+        <span>📱 Device dashboard & search</span>
+        <span>🏪 Merchant list & onboarding</span>
+        <span>📊 Daily & regional reports</span>
+        <span>🔔 Alert cards & acknowledge</span>
+        <span>➕ Add device (5-step form)</span>
+        <span>➕ Add merchant (5-step form)</span>
+        <span>🚫 Deactivate with confirmation</span>
+        <span>❓ FAQ with guided topics</span>
+      </div>
+    </div>
+
+    <div class="prod-note">
+      <h4>🔄 Production Swap</h4>
+      <p>Replace Pattern Matching with <strong>LLM + LangGraph</strong><br>Replace Dummy Data with <strong>REST APIs</strong></p>
+    </div>
+
+    <div class="num n1">1</div>
+    <div class="flow-label fl-1">Click / Type</div>
+
+    <div class="num n2">2</div>
+    <div class="flow-label fl-2">Route to Engine</div>
+
+    <div class="num n3">3</div>
+    <div class="flow-label fl-3">Match & Process</div>
+
+    <div class="num n4">4</div>
+    <div class="flow-label fl-4">Fetch Data</div>
+
+    <div class="num n5">5</div>
+    <div class="flow-label fl-5">Build Response</div>
+  </div>
+</div>
+</body>
+</html>
