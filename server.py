@@ -353,14 +353,12 @@ class BotEngine:
                 "HELP":         self._help_menu,
             }
 
-            # Post-classification: if REPORT intent + city mentioned, go to city report
-            if intent == "REPORT":
-                tl = t.lower()
-                for city in ["mumbai", "delhi", "bangalore", "chennai"]:
-                    if city in tl:
-                        return self._region_report(city.capitalize())
+            # If intent has a specific qualifier (city, ID, name, etc.), send to LLM for smart answer
+            # Only use handler for generic/short queries like "reports", "devices", "alerts"
+            words = text.strip().split()
+            is_specific = len(words) >= 3  # "reports for delhi", "show me mumbai devices", etc.
 
-            if intent in INTENT_ROUTES:
+            if intent in INTENT_ROUTES and not is_specific:
                 return INTENT_ROUTES[intent]()
 
             # GENERAL intent — full LLM answer
