@@ -3,6 +3,9 @@
 
 import json
 import re
+import threading
+
+from ollama_client import query_ollama, build_data_snapshot, is_ollama_running
 
 # ─── Dummy Data ───────────────────────────────────────────────────────────────
 
@@ -326,16 +329,36 @@ class BotEngine:
         answer = FAQ.get(key, "No FAQ entry found.")
         return [{"type": "text", "content": f"📖 **FAQ**\n\n{answer}", "buttons": [{"text": "❓ More FAQ", "data": "help"}, {"text": "🏠 Menu", "data": "menu"}]}]
 
-    # ── NL Fallback ──
+    # ── NL Fallback (LLM-powered via Ollama) ──
 
     def _nl_fallback(self, text):
         t = text.lower()
+
+        # Quick regex matches — instant, no LLM needed
         match = re.search(r'pos-\d{4}', t, re.I)
         if match: return self._device_detail(match.group().upper())
+
+        # Keyword routing — fast path for obvious intents
         if any(w in t for w in ["device", "terminal", "pos"]): return self._device_menu()
         if any(w in t for w in ["merchant", "store", "shop", "onboard"]): return self._merchant_menu()
         if any(w in t for w in ["report", "transaction", "volume", "summary", "revenue"]): return self._reports_menu()
         if any(w in t for w in ["alert", "warning", "notification"]): return self._show_alerts()
         if any(w in t for w in ["help", "faq", "how", "reset", "settle", "paper", "connect"]): return self._help_menu()
+
+        # LLM fallback — Ollama phi3:mini for natural language queries
+        if is_ollama_running():
+            snapshot = build_data_snapshot(DEVICES, MERCHANTS, TRANSACTIONS_DAILY, ALERTS)
+            ai_response = query_ollama(text, snapshot)
+
+            if ai_response and not ai_response.startswith("⚠️"):
+                return [{"type": "text", "content": f"🤖 **NexPOS AI**\n\n{ai_response}",
+                         "buttons": [
+                             {"text": "📱 Devices", "data": "device_status"},
+                             {"text": "🏪 Merchants", "data": "merchants"},
+                             {"text": "📊 Reports", "data": "reports"},
+                             {"text": "🏠 Menu", "data": "menu"},
+                         ]}]
+
+        # Final fallback — no LLM available
         return [{"type": "text", "content": "🤔 I'm not sure what you need. Pick an option:",
                  "buttons": [{"text": "📱 Devices", "data": "device_status"}, {"text": "🏪 Merchants", "data": "merchants"}, {"text": "📊 Reports", "data": "reports"}, {"text": "🔔 Alerts", "data": "alerts"}, {"text": "❓ Help", "data": "help"}]}]

@@ -75,7 +75,17 @@ async def chat_handler(websocket):
             print(f"[WS] {sid}: btn={btn} text={text[:60]}", flush=True)
 
             try:
-                responses = bot.process(sid, text, btn)
+                # Send typing indicator for free-text queries (may hit LLM)
+                if not btn:
+                    await websocket.send(json.dumps({"type": "typing", "content": True}))
+
+                loop = asyncio.get_event_loop()
+                responses = await loop.run_in_executor(None, bot.process, sid, text, btn)
+
+                # Stop typing indicator
+                if not btn:
+                    await websocket.send(json.dumps({"type": "typing", "content": False}))
+
                 for msg in responses:
                     await websocket.send(json.dumps(msg))
             except Exception as e:
