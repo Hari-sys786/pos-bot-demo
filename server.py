@@ -5,7 +5,7 @@ import json
 import re
 import threading
 
-from ollama_client import query_ollama, build_data_snapshot, is_ollama_running
+from ollama_client import classify_intent, generate_answer, build_data_snapshot, is_ollama_running
 
 # ─── Dummy Data ───────────────────────────────────────────────────────────────
 
@@ -329,26 +329,45 @@ class BotEngine:
         answer = FAQ.get(key, "No FAQ entry found.")
         return [{"type": "text", "content": f"📖 **FAQ**\n\n{answer}", "buttons": [{"text": "❓ More FAQ", "data": "help"}, {"text": "🏠 Menu", "data": "menu"}]}]
 
-    # ── NL Fallback (LLM-powered via Ollama) ──
+    # ── NL Fallback (LLM Intent Classification → Route to Handler) ──
 
     def _nl_fallback(self, text):
         t = text.lower()
 
-        # Quick regex matches — instant, no LLM needed
+        # Quick regex — device ID mentioned directly
         match = re.search(r'pos-\d{4}', t, re.I)
         if match: return self._device_detail(match.group().upper())
 
-        # Keyword routing — fast path for obvious intents
-        if any(w in t for w in ["device", "terminal", "pos"]): return self._device_menu()
-        if any(w in t for w in ["merchant", "store", "shop", "onboard"]): return self._merchant_menu()
-        if any(w in t for w in ["report", "transaction", "volume", "summary", "revenue"]): return self._reports_menu()
-        if any(w in t for w in ["alert", "warning", "notification"]): return self._show_alerts()
-        if any(w in t for w in ["help", "faq", "how", "reset", "settle", "paper", "connect"]): return self._help_menu()
-
-        # LLM fallback — Ollama phi3:mini for natural language queries
+        # LLM Intent Classification — ALL free text goes through this
         if is_ollama_running():
+            intent = classify_intent(text)
+
+            # Route to existing handlers based on classified intent
+            INTENT_ROUTES = {
+                "DEVICE_LIST":    self._device_menu,
+                "DEVICE_ADD":     self._show_device_form,
+                "MERCHANT_LIST":  self._merchant_menu,
+                "MERCHANT_ADD":   self._show_merchant_form,
+                "REPORTS":        self._reports_menu,
+                "MUMBAI":         lambda: self._region_report("Mumbai"),
+                "DELHI":          lambda: self._region_report("Delhi"),
+                "BANGALORE":      lambda: self._region_report("Bangalore"),
+                "CHENNAI":        lambda: self._region_report("Chennai"),
+                "ALERTS":         self._show_alerts,
+                "FAQ_RESET":      lambda: self._show_faq("reset device"),
+                "FAQ_SETTLEMENT": lambda: self._show_faq("settlement"),
+                "FAQ_PAPER":      lambda: self._show_faq("paper roll"),
+                "FAQ_CONNECTIVITY": lambda: self._show_faq("connectivity"),
+                "HELP":           self._help_menu,
+                "MENU":           self._main_menu,
+            }
+
+            if intent in INTENT_ROUTES:
+                return INTENT_ROUTES[intent]() if callable(INTENT_ROUTES[intent]) else INTENT_ROUTES[intent]
+
+            # GENERAL intent — full LLM answer
             snapshot = build_data_snapshot(DEVICES, MERCHANTS, TRANSACTIONS_DAILY, ALERTS)
-            ai_response = query_ollama(text, snapshot)
+            ai_response = generate_answer(text, snapshot)
 
             if ai_response and not ai_response.startswith("⚠️"):
                 return [{"type": "text", "content": f"🤖 **NexPOS AI**\n\n{ai_response}",
@@ -359,6 +378,6 @@ class BotEngine:
                              {"text": "🏠 Menu", "data": "menu"},
                          ]}]
 
-        # Final fallback — no LLM available
+        # Final fallback — Ollama not running
         return [{"type": "text", "content": "🤔 I'm not sure what you need. Pick an option:",
                  "buttons": [{"text": "📱 Devices", "data": "device_status"}, {"text": "🏪 Merchants", "data": "merchants"}, {"text": "📊 Reports", "data": "reports"}, {"text": "🔔 Alerts", "data": "alerts"}, {"text": "❓ Help", "data": "help"}]}]
