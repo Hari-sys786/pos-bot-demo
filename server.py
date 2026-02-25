@@ -344,26 +344,24 @@ class BotEngine:
 
             # Route to existing handlers based on classified intent
             INTENT_ROUTES = {
-                "DEVICE_LIST":    self._device_menu,
-                "DEVICE_ADD":     self._show_device_form,
-                "MERCHANT_LIST":  self._merchant_menu,
-                "MERCHANT_ADD":   self._show_merchant_form,
-                "REPORTS":        self._reports_menu,
-                "MUMBAI":         lambda: self._region_report("Mumbai"),
-                "DELHI":          lambda: self._region_report("Delhi"),
-                "BANGALORE":      lambda: self._region_report("Bangalore"),
-                "CHENNAI":        lambda: self._region_report("Chennai"),
-                "ALERTS":         self._show_alerts,
-                "FAQ_RESET":      lambda: self._show_faq("reset device"),
-                "FAQ_SETTLEMENT": lambda: self._show_faq("settlement"),
-                "FAQ_PAPER":      lambda: self._show_faq("paper roll"),
-                "FAQ_CONNECTIVITY": lambda: self._show_faq("connectivity"),
-                "HELP":           self._help_menu,
-                "MENU":           self._main_menu,
+                "DEVICE":       self._device_menu,
+                "ADD_DEVICE":   self._show_device_form,
+                "MERCHANT":     self._merchant_menu,
+                "ADD_MERCHANT": self._show_merchant_form,
+                "REPORT":       self._reports_menu,
+                "ALERT":        self._show_alerts,
+                "HELP":         self._help_menu,
             }
 
+            # Post-classification: if REPORT intent + city mentioned, go to city report
+            if intent == "REPORT":
+                tl = t.lower()
+                for city in ["mumbai", "delhi", "bangalore", "chennai"]:
+                    if city in tl:
+                        return self._region_report(city.capitalize())
+
             if intent in INTENT_ROUTES:
-                return INTENT_ROUTES[intent]() if callable(INTENT_ROUTES[intent]) else INTENT_ROUTES[intent]
+                return INTENT_ROUTES[intent]()
 
             # GENERAL intent — full LLM answer
             snapshot = build_data_snapshot(DEVICES, MERCHANTS, TRANSACTIONS_DAILY, ALERTS)
